@@ -12,14 +12,11 @@ const {
   updateSubCategoryValidator,
   deleteSubCategoryValidator,
   createSubCategoryValidator,
-} = require("../utils/validators/subCategoryValidator");
+} = require("../utils/validators/subCategoryValidators");
 const {
   setCategoryIDToSubCategoryBodyReq,
   createFilterObj,
 } = require("../middlewares/addDataToReqMiddleware");
-const {
-  getCategoryValidator,
-} = require("../utils/validators/categoryValidators");
 
 // mergeParams: allow us to access parameters on other routers
 const router = express.Router({ mergeParams: true });
