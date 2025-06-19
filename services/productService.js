@@ -11,7 +11,10 @@ exports.getProducts = asyncHandler(async (req, res) => {
   const limit = req.query.limit * 1 || 5;
   const skip = (page - 1) * limit;
 
-  const products = await productModel.find({}).skip(skip).limit(limit);
+  const products = await productModel
+    .find({ price: req.query.price, ratingAverage: req.query.average })
+    .skip(skip)
+    .limit(limit);
 
   res.status(200).json({ results: products.length, page, data: products });
 });
