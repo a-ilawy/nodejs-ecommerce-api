@@ -1,4 +1,4 @@
-// @desc this calss is responsible about operation errors (errors that i can predict)
+// @desc this class is responsible about operation errors (errors that i can predict)
 class ApiError extends Error {
     constructor(message, statusCode) {
         super(message);
