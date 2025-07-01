@@ -2,23 +2,24 @@ const slugify = require("slugify");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const SubCategoryModel = require("../models/subCategory");
-
+const ApiFeatures = require("../utils/apiFeatures");
 // @desc Get list of subCategory
 // @route GET /api/v1/subCategories
 // @access Public
 exports.getSubCategories = asyncHandler(async (req, res) => {
-  const page = req.query.page * 1 || 1;
-  const limit = req.query.limit * 1 || 5;
-  const skip = (page - 1) * limit;
-
-  const subCategories = await SubCategoryModel.find(req.filterObj)
-    .skip(skip)
-    .limit(limit);
-  // .populate({ path: "category", select: "name -_id" });
+ const documentsCounts = await SubCategoryModel.countDocuments();
+  const apiFeatures = new ApiFeatures(SubCategoryModel.find(), req.query)
+    .paginate(documentsCounts)
+    .filter()
+    .search()
+    .limitFields()
+    .sort();
+  const { mongooseQuery, paginationResult } = apiFeatures;
+  const documents = await mongooseQuery;
 
   res
     .status(200)
-    .json({ results: subCategories.length, page, data: subCategories });
+    .json({ results: documents.length, paginationResult, data: documents });
 });
 
 // @desc Get specific subCategory by id
