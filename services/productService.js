@@ -4,83 +4,26 @@ const asyncHandler = require("express-async-handler");
 const productModel = require("../models/productModel");
 const ApiError = require("../utils/apiError");
 const ProductModel = require("../models/productModel");
+const ApiFeatures = require("../utils/apiFeatures");
 
 // @desc Get list of products
 // @route GET /api/v1/products
 // @access Public
 exports.getProducts = asyncHandler(async (req, res) => {
-  // Clone and clean the query
-  const queryStringObj = { ...req.query };
-  const excludedFields = ['page', 'sort', 'limit', 'fields'];
-  excludedFields.forEach((field) => delete queryStringObj[field]);
+  const documentsCounts = await ProductModel.countDocuments();
+  const apiFeatures = new ApiFeatures(ProductModel.find(), req.query)
+     .paginate(documentsCounts)
+    .filter()
+    .search()
+    .limitFields()
+    .sort();
+  const { mongooseQuery, paginationResult } = apiFeatures;
+    const documents = await mongooseQuery;
 
-  // Optional custom operator overrides
-  const operatorsOverride = {
-    'price[gte]': 'gte', // Example: price[gte]=50 → price: {lte: 50}
-  };
-
-  // Convert query like price[gte]=50 → { price: "{lte:50}" }
-  const output = Object.entries(queryStringObj).reduce((acc, [key, value]) => {
-    const match = key.match(/^(.+)\[(.+)\]$/);
-    if (match) {
-      const field = match[1];
-      const operator = operatorsOverride[key] || match[2];
-      acc[field] = `{${operator}:${value}}`;
-    } else {
-      acc[key] = value;
-    }
-    return acc;
-  }, {});
-
-  console.log('Formatted Output:', output);
-  // Example: { ratingAverage: '{gte:2}', price: '{lte:50}' }
-
-  // Convert to actual MongoDB filters
-  const mongoFilter = Object.entries(output).reduce((acc, [key, val]) => {
-    const parsed = val.match(/^\{(.+):(.+)\}$/);
-    if (parsed) {
-      acc[key] = { [`$${parsed[1]}`]: parsed[2] };
-    } else {
-      acc[key] = val;
-    }
-    return acc;
-  }, {});
-  console.log('mongoFilter Output:', mongoFilter);
-  // Pagination
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 5;
-  const skip = (page - 1) * limit;
-
-  // Query MongoDB
-  let MongooseQuery = ProductModel.find(mongoFilter)
-    .skip(skip)
-    .limit(limit);
-
-    if(req.query.sort){
-      const sortBy = req.query.sort.split(',').join(' ');
-        console.log('sortBy Output:', sortBy);
-      MongooseQuery = MongooseQuery.sort(sortBy);
-    }else{
-       MongooseQuery = MongooseQuery.sort('-createdAt');
-    }
-
-     if(req.query.fields){
-      const fields = req.query.fields.split(',').join(' ');
-        console.log('sortBy Output:', fields);
-      MongooseQuery = MongooseQuery.select(fields);
-    }else{
-       MongooseQuery = MongooseQuery.select('-__v');
-    }
-
-  const products = await MongooseQuery
-    
-
-  res.status(200).json({
-    results: products.length,
-    page,
-    data: products,
+    res
+      .status(200)
+      .json({ results: documents.length, paginationResult, data: documents });
   });
-});
 
 
 // @desc Get specific product by id
